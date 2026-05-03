@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "mmod",
+  "version": "${version}",
+  "name": "mmod",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/mmod/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.wiyuka.mmod.client.MmodClient"
+    ],
+    "main": [
+      "com.wiyuka.mmod.Mmod"
+    ]
+  },
+  "mixins": [
+    "mmod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
