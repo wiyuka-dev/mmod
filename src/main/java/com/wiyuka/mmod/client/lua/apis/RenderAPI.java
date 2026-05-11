@@ -7,22 +7,24 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4f;
 import org.squiddev.cobalt.*;
 import org.squiddev.cobalt.function.Dispatch;
 import org.squiddev.cobalt.function.LibFunction;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class RenderAPI implements LuaAPI {
     private static LuaValue renderCallback = null;
     private static LuaState currentState = null;
     private static boolean isEventRegistered = false;
-
     private static boolean isRendering = false;
-    private static final List<Triangle> triangles = new ArrayList<>();
-    private static final List<Quad> quads = new ArrayList<>();
+
+    private static float[] triangles = new float[1300];
+    private static int triangleCount = 0;
+
+    private static float[] quads = new float[1600];
+    private static int quadCount = 0;
+
+    private static float[] lines = new float[1000];
+    private static int lineCount = 0;
 
     private LuaTable drawApiContext;
 
@@ -32,33 +34,38 @@ public class RenderAPI implements LuaAPI {
         drawApiContext = new LuaTable();
 
         drawApiContext.rawset("drawTriangle", LibFunction.createV((state, args) -> {
-            if (!isRendering) {
-                throw new LuaError("Render APIs can only be called inside the render callback!");
-            }
-            Triangle t = new Triangle(
-                    (float) args.arg(1).checkDouble(), (float) args.arg(2).checkDouble(), (float) args.arg(3).checkDouble(),
-                    (float) args.arg(4).checkDouble(), (float) args.arg(5).checkDouble(), (float) args.arg(6).checkDouble(),
-                    (float) args.arg(7).checkDouble(), (float) args.arg(8).checkDouble(), (float) args.arg(9).checkDouble(),
-                    (float) args.arg(10).optDouble(1.0), (float) args.arg(11).optDouble(1.0),
-                    (float) args.arg(12).optDouble(1.0), (float) args.arg(13).optDouble(1.0)
-            );
-            triangles.add(t);
+            if (!isRendering) throw new LuaError("Render APIs can only be called inside the render callback!");
+            triangles = ensureCapacity(triangles, (triangleCount + 1) * 13);
+            int i = triangleCount * 13;
+            triangles[i]   = (float) args.arg(1).checkDouble();  triangles[i+1] = (float) args.arg(2).checkDouble();  triangles[i+2] = (float) args.arg(3).checkDouble();
+            triangles[i+3] = (float) args.arg(4).checkDouble();  triangles[i+4] = (float) args.arg(5).checkDouble();  triangles[i+5] = (float) args.arg(6).checkDouble();
+            triangles[i+6] = (float) args.arg(7).checkDouble();  triangles[i+7] = (float) args.arg(8).checkDouble();  triangles[i+8] = (float) args.arg(9).checkDouble();
+            triangles[i+9] = (float) args.arg(10).optDouble(1.0);triangles[i+10]= (float) args.arg(11).optDouble(1.0);triangles[i+11]= (float) args.arg(12).optDouble(1.0); triangles[i+12] = (float) args.arg(13).optDouble(1.0);
+            triangleCount++;
             return Constants.NONE;
         }));
 
         drawApiContext.rawset("drawQuad", LibFunction.createV((state, args) -> {
-            if (!isRendering) {
-                throw new LuaError("Render APIs can only be called inside the render callback!");
-            }
-            Quad q = new Quad(
-                    (float) args.arg(1).checkDouble(), (float) args.arg(2).checkDouble(), (float) args.arg(3).checkDouble(),
-                    (float) args.arg(4).checkDouble(), (float) args.arg(5).checkDouble(), (float) args.arg(6).checkDouble(),
-                    (float) args.arg(7).checkDouble(), (float) args.arg(8).checkDouble(), (float) args.arg(9).checkDouble(),
-                    (float) args.arg(10).checkDouble(), (float) args.arg(11).checkDouble(), (float) args.arg(12).checkDouble(),
-                    (float) args.arg(13).optDouble(1.0), (float) args.arg(14).optDouble(1.0),
-                    (float) args.arg(15).optDouble(1.0), (float) args.arg(16).optDouble(1.0)
-            );
-            quads.add(q);
+            if (!isRendering) throw new LuaError("Render APIs can only be called inside the render callback!");
+            quads = ensureCapacity(quads, (quadCount + 1) * 16);
+            int i = quadCount * 16;
+            quads[i]   = (float) args.arg(1).checkDouble();  quads[i+1] = (float) args.arg(2).checkDouble();  quads[i+2] = (float) args.arg(3).checkDouble();
+            quads[i+3] = (float) args.arg(4).checkDouble();  quads[i+4] = (float) args.arg(5).checkDouble();  quads[i+5] = (float) args.arg(6).checkDouble();
+            quads[i+6] = (float) args.arg(7).checkDouble();  quads[i+7] = (float) args.arg(8).checkDouble();  quads[i+8] = (float) args.arg(9).checkDouble();
+            quads[i+9] = (float) args.arg(10).checkDouble(); quads[i+10]= (float) args.arg(11).checkDouble(); quads[i+11]= (float) args.arg(12).checkDouble();
+            quads[i+12]= (float) args.arg(13).optDouble(1.0);quads[i+13]= (float) args.arg(14).optDouble(1.0);quads[i+14]= (float) args.arg(15).optDouble(1.0); quads[i+15] = (float) args.arg(16).optDouble(1.0);
+            quadCount++;
+            return Constants.NONE;
+        }));
+
+        drawApiContext.rawset("drawLine", LibFunction.createV((state, args) -> {
+            if (!isRendering) throw new LuaError("Render APIs can only be called inside the render callback!");
+            lines = ensureCapacity(lines, (lineCount + 1) * 10);
+            int i = lineCount * 10;
+            lines[i]   = (float) args.arg(1).checkDouble(); lines[i+1] = (float) args.arg(2).checkDouble(); lines[i+2] = (float) args.arg(3).checkDouble();
+            lines[i+3] = (float) args.arg(4).checkDouble(); lines[i+4] = (float) args.arg(5).checkDouble(); lines[i+5] = (float) args.arg(6).checkDouble();
+            lines[i+6] = (float) args.arg(7).optDouble(1.0);lines[i+7] = (float) args.arg(8).optDouble(1.0);lines[i+8] = (float) args.arg(9).optDouble(1.0); lines[i+9] = (float) args.arg(10).optDouble(1.0);
+            lineCount++;
             return Constants.NONE;
         }));
 
@@ -78,40 +85,91 @@ public class RenderAPI implements LuaAPI {
             WorldRenderEvents.AFTER_ENTITIES.register(context -> {
                 if (renderCallback == null || currentState == null) return;
 
+                triangleCount = 0;
+                quadCount = 0;
+                lineCount = 0;
                 isRendering = true;
-                triangles.clear();
-                quads.clear();
 
                 try {
                     Dispatch.call(currentState, renderCallback, drawApiContext);
                 } catch (Exception | UnwindThrowable e) {
                     e.printStackTrace();
+                } finally {
+                    isRendering = false;
                 }
 
-                isRendering = false;
-
-                if (triangles.isEmpty() && quads.isEmpty()) return;
+                if (triangleCount == 0 && quadCount == 0 && lineCount == 0) return;
 
                 Minecraft client = Minecraft.getInstance();
                 MultiBufferSource.BufferSource bufferSource = client.renderBuffers().bufferSource();
-
-                VertexConsumer builder = bufferSource.getBuffer(RenderTypes.debugFilledBox());
-
                 PoseStack poseStack = context.matrices();
                 Vec3 cameraPos = context.gameRenderer().getMainCamera().position();
 
                 poseStack.pushPose();
                 poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
-                Matrix4f pose = poseStack.last().pose();
+                PoseStack.Pose pose = poseStack.last();
+                org.joml.Matrix4f matrix = pose.pose();
 
-                for (Quad q : quads) {
-                    q.draw(builder, pose);
+                VertexConsumer builder = bufferSource.getBuffer(RenderTypes.debugFilledBox());
+
+                for (int c = 0; c < quadCount; c++) {
+                    int i = c * 16;
+                    float r = quads[i+12], g = quads[i+13], b = quads[i+14], a = quads[i+15];
+                    builder.addVertex(matrix, quads[i],   quads[i+1],  quads[i+2]).setColor(r, g, b, a);
+                    builder.addVertex(matrix, quads[i+3], quads[i+4],  quads[i+5]).setColor(r, g, b, a);
+                    builder.addVertex(matrix, quads[i+6], quads[i+7],  quads[i+8]).setColor(r, g, b, a);
+                    builder.addVertex(matrix, quads[i+9], quads[i+10], quads[i+11]).setColor(r, g, b, a);
                 }
 
-                for (Triangle t : triangles) {
-                    t.draw(builder, pose);
+                for (int c = 0; c < triangleCount; c++) {
+                    int i = c * 13;
+                    float r = triangles[i+9], g = triangles[i+10], b = triangles[i+11], a = triangles[i+12];
+                    builder.addVertex(matrix, triangles[i],   triangles[i+1], triangles[i+2]).setColor(r, g, b, a);
+                    builder.addVertex(matrix, triangles[i+3], triangles[i+4], triangles[i+5]).setColor(r, g, b, a);
+                    builder.addVertex(matrix, triangles[i+6], triangles[i+7], triangles[i+8]).setColor(r, g, b, a);
+                    builder.addVertex(matrix, triangles[i+6], triangles[i+7], triangles[i+8]).setColor(r, g, b, a);
                 }
 
+                for (int c = 0; c < lineCount; c++) {
+                    int i = c * 10;
+                    float x1 = lines[i], y1 = lines[i+1], z1 = lines[i+2];
+                    float x2 = lines[i+3], y2 = lines[i+4], z2 = lines[i+5];
+                    float r = lines[i+6], g = lines[i+7], b = lines[i+8], a = lines[i+9];
+
+                    float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
+                    float lenSq = dx * dx + dy * dy + dz * dz;
+                    if (lenSq < 1e-5f) continue;
+
+                    float invLen = 1.0f / (float) Math.sqrt(lenSq);
+                    dx *= invLen; dy *= invLen; dz *= invLen;
+
+                    float upX = 0, upY = 1, upZ = 0;
+                    if (Math.abs(dy) > 0.9f) { upX = 1; upY = 0; upZ = 0; }
+
+                    float rX = dy * upZ - dz * upY;
+                    float rY = dz * upX - dx * upZ;
+                    float rZ = dx * upY - dy * upX;
+                    float rLenInv = 0.02f / (float) Math.sqrt(rX*rX + rY*rY + rZ*rZ);
+                    rX *= rLenInv; rY *= rLenInv; rZ *= rLenInv;
+
+                    float uX = rY * dz - rZ * dy;
+                    float uY = rZ * dx - rX * dz;
+                    float uZ = rX * dy - rY * dx;
+                    float uLenInv = 0.02f / (float) Math.sqrt(uX*uX + uY*uY + uZ*uZ);
+                    uX *= uLenInv; uY *= uLenInv; uZ *= uLenInv;
+
+                    builder.addVertex(matrix, x1 - rX, y1 - rY, z1 - rZ).setColor(r, g, b, a);
+                    builder.addVertex(matrix, x1 + rX, y1 + rY, z1 + rZ).setColor(r, g, b, a);
+                    builder.addVertex(matrix, x2 + rX, y2 + rY, z2 + rZ).setColor(r, g, b, a);
+                    builder.addVertex(matrix, x2 - rX, y2 - rY, z2 - rZ).setColor(r, g, b, a);
+
+                    builder.addVertex(matrix, x1 - uX, y1 - uY, z1 - uZ).setColor(r, g, b, a);
+                    builder.addVertex(matrix, x1 + uX, y1 + uY, z1 + uZ).setColor(r, g, b, a);
+                    builder.addVertex(matrix, x2 + uX, y2 + uY, z2 + uZ).setColor(r, g, b, a);
+                    builder.addVertex(matrix, x2 - uX, y2 - uY, z2 - uZ).setColor(r, g, b, a);
+                }
+
+                bufferSource.endBatch(RenderTypes.debugFilledBox());
                 poseStack.popPose();
             });
             isEventRegistered = true;
@@ -121,66 +179,15 @@ public class RenderAPI implements LuaAPI {
     @Override
     public void clear() {
         renderCallback = null;
-        triangles.clear();
-        quads.clear();
+        triangleCount = 0;
+        quadCount = 0;
+        lineCount = 0;
     }
 
-    private static abstract class Shape {
-        protected final float r, g, b, a;
-
-        Shape(float r, float g, float b, float a) {
-            this.r = r;
-            this.g = g;
-            this.b = b;
-            this.a = a;
-        }
-
-        abstract void draw(VertexConsumer consumer, Matrix4f pose);
-    }
-
-    private static class Triangle extends Shape {
-        private final float x1, y1, z1, x2, y2, z2, x3, y3, z3;
-
-        Triangle(float x1, float y1, float z1,
-                 float x2, float y2, float z2,
-                 float x3, float y3, float z3,
-                 float r, float g, float b, float a) {
-            super(r, g, b, a);
-            this.x1 = x1; this.y1 = y1; this.z1 = z1;
-            this.x2 = x2; this.y2 = y2; this.z2 = z2;
-            this.x3 = x3; this.y3 = y3; this.z3 = z3;
-        }
-
-        @Override
-        void draw(VertexConsumer consumer, Matrix4f pose) {
-            consumer.addVertex(pose, x1, y1, z1).setColor(r, g, b, a);
-            consumer.addVertex(pose, x2, y2, z2).setColor(r, g, b, a);
-            consumer.addVertex(pose, x3, y3, z3).setColor(r, g, b, a);
-            consumer.addVertex(pose, x3, y3, z3).setColor(r, g, b, a);
-        }
-    }
-
-    private static class Quad extends Shape {
-        private final float x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
-
-        Quad(float x1, float y1, float z1,
-             float x2, float y2, float z2,
-             float x3, float y3, float z3,
-             float x4, float y4, float z4,
-             float r, float g, float b, float a) {
-            super(r, g, b, a);
-            this.x1 = x1; this.y1 = y1; this.z1 = z1;
-            this.x2 = x2; this.y2 = y2; this.z2 = z2;
-            this.x3 = x3; this.y3 = y3; this.z3 = z3;
-            this.x4 = x4; this.y4 = y4; this.z4 = z4;
-        }
-
-        @Override
-        void draw(VertexConsumer consumer, Matrix4f pose) {
-            consumer.addVertex(pose, x1, y1, z1).setColor(r, g, b, a);
-            consumer.addVertex(pose, x2, y2, z2).setColor(r, g, b, a);
-            consumer.addVertex(pose, x3, y3, z3).setColor(r, g, b, a);
-            consumer.addVertex(pose, x4, y4, z4).setColor(r, g, b, a);
-        }
+    private static float[] ensureCapacity(float[] arr, int minCapacity) {
+        if (arr.length >= minCapacity) return arr;
+        float[] newArr = new float[Math.max(arr.length * 2, minCapacity)];
+        System.arraycopy(arr, 0, newArr, 0, arr.length);
+        return newArr;
     }
 }

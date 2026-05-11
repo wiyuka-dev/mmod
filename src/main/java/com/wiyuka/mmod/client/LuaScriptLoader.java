@@ -1,6 +1,7 @@
 package com.wiyuka.mmod.client;
 
 import com.wiyuka.mmod.client.lua.apis.ConsoleAPI;
+import com.wiyuka.mmod.client.lua.apis.EventsAPI;
 import com.wiyuka.mmod.client.lua.apis.RenderAPI;
 import com.wiyuka.mmod.client.lua.apis.WorldAPI;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -12,7 +13,6 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import org.squiddev.cobalt.*;
 import org.squiddev.cobalt.compiler.LoadState;
 import org.squiddev.cobalt.function.LuaFunction;
-import org.squiddev.cobalt.lib.TableLib;
 
 import java.io.InputStream;
 import java.util.Optional;
@@ -28,6 +28,7 @@ public class LuaScriptLoader {
             @Override
             public void onResourceManagerReload(ResourceManager resourceManager) {
                 Identifier scriptId = Identifier.parse("mmod:script/main.lua");
+
                 Optional<Resource> resourceOpt = resourceManager.getResource(scriptId);
 
                 if (resourceOpt.isPresent()) {
@@ -46,18 +47,18 @@ public class LuaScriptLoader {
         LuaState state = new LuaState();
         LuaTable env = new LuaTable();
 
-
         new ConsoleAPI().register(env);
         new WorldAPI().register(env);
         new RenderAPI().register(env);
+        new EventsAPI().register(env);
 
         try {
             org.squiddev.cobalt.lib.MathLib.add(state, env);
             org.squiddev.cobalt.lib.StringLib.add(state, env);
             org.squiddev.cobalt.lib.BaseLib.add(env);
             org.squiddev.cobalt.lib.CoroutineLib.add(state, env);
-            LuaFunction chunk = LoadState.load(state, stream, "@main.lua", env);
 
+            LuaFunction chunk = LoadState.load(state, stream, "@main.lua", env);
             LuaThread.runMain(state, chunk);
 
         } catch (Exception e) {
