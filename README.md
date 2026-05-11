@@ -1,6 +1,6 @@
 # MMod
 
-MMod 这是一个基于 Fabric 的 Minecraft 客户端模组。通过集成 Cobalt 引擎，在游戏内引入了 Lua 脚本运行环境，允许玩家或开发者通过编写 Lua 脚本来与游戏客户端进行交互。
+MMod 是一个基于 Fabric 的 Minecraft 客户端模组。通过集成 Cobalt 引擎，在游戏内引入了 Lua 脚本运行环境，允许玩家或开发者通过编写 Lua 脚本来与游戏客户端进行交互。
 
 ## 功能介绍
 
